@@ -140,6 +140,7 @@ def embedding_lookup(input_ids,
       shape=[vocab_size, embedding_size],
       initializer=create_initializer(initializer_range))
 
+  #shape=(60,)
   flat_input_ids = tf.reshape(input_ids, [-1])
   if use_one_hot_embeddings:
     #if depth less than input_ids, there is no label  in output
@@ -155,13 +156,15 @@ def embedding_lookup(input_ids,
   output = tf.reshape(output,
                       input_shape[0:-1] + [input_shape[-1] * embedding_size])
   return (output, embedding_table)
+  #return flat_input_ids
 
 def embedding_postprocessor(input_tensor,
-                            use_token_type=False,
+                            use_token_type=True,
                             token_type_ids=None,
                             token_type_vocab_size=16,
                             token_type_embedding_name="token_type_embeddings",
                             use_position_embeddings=True,
+                            embedding_size=128,
                             position_embedding_name="position_embeddings",
                             initializer_range=0.02,
                             max_position_embeddings=512,
@@ -203,20 +206,23 @@ def embedding_postprocessor(input_tensor,
                        "`use_token_type` is True.")
     token_type_table = tf.get_variable(
         name=token_type_embedding_name,
-        shape=[token_type_vocab_size, width],
+        shape=[token_type_vocab_size, embedding_size],
         initializer=create_initializer(initializer_range))
     # This vocab will be small so we always do one-hot here, since it is always
     # faster for a small vocabulary.
     flat_token_type_ids = tf.reshape(token_type_ids, [-1])
     one_hot_ids = tf.one_hot(flat_token_type_ids, depth=token_type_vocab_size)
+    #(60,16) (16,384)
     token_type_embeddings = tf.matmul(one_hot_ids, token_type_table)
     token_type_embeddings = tf.reshape(token_type_embeddings,
                                        [batch_size, seq_length, width])
     output += token_type_embeddings
 
   if use_position_embeddings:
+    #max_position_embedding must bigger than seq_length
     assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
     with tf.control_dependencies([assert_op]):
+      #each of atom steps will check the assert_op
       full_position_embeddings = tf.get_variable(
           name=position_embedding_name,
           shape=[max_position_embeddings, width],
@@ -230,6 +236,7 @@ def embedding_postprocessor(input_tensor,
       # for position [0, 1, 2, ..., max_position_embeddings-1], and the current
       # sequence has positions [0, 1, 2, ... seq_length-1], so we can just
       # perform a slice.
+      #(10,384)
       position_embeddings = tf.slice(full_position_embeddings, [0, 0],
                                      [seq_length, -1])
       num_dims = len(output.shape.as_list())
@@ -239,13 +246,15 @@ def embedding_postprocessor(input_tensor,
       # the batch size.
       position_broadcast_shape = []
       for _ in range(num_dims - 2):
-        position_broadcast_shape.append(1)
+          position_broadcast_shape.append(1)
+      #position_broadcast_shape=(1,10,384)
       position_broadcast_shape.extend([seq_length, width])
       position_embeddings = tf.reshape(position_embeddings,
                                        position_broadcast_shape)
+      #(2,10,384)+(1,10,384)
       output += position_embeddings
 
-  output = layer_norm_and_dropout(output, dropout_prob)
+  #output = layer_norm_and_dropout(output, dropout_prob)
   return output
 
   #input is of shape [batch_size, seq_length, num_inputs].
@@ -281,10 +290,13 @@ token_type_ids = tf.constant([[[0, 0, 1], [0, 2, 0],
                                [0, 0, 1], [0, 2, 0]]])
 vocab_size = 100
 embedding_output, embedding_table = embedding_lookup(input_ids, vocab_size)
-embedding_output = embedding_postprocessor(embedding_output)
+embedding_output = embedding_postprocessor(embedding_output,
+                                           use_token_type=True,
+                                           token_type_ids=token_type_ids)
 init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
     r1 = sess.run(embedding_output)
     print(r1)
     print(r1.shape)
+    #print(embedding_output)
