@@ -46,20 +46,20 @@ def gelu(x):
       (np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))))
   return x * cdf
 
-def attention_layer(from_tensor,
-                    to_tensor,
-                    attention_mask=None,
-                    num_attention_heads=1,
-                    size_per_head=512,
+def attention_layer(from_tensor,#(20, 384)
+                    to_tensor,#(20, 384)
+                    attention_mask=None,#(yes)
+                    num_attention_heads=1,#(12)
+                    size_per_head=512,#(384/12=32)
                     query_act=None,
                     key_act=None,
                     value_act=None,
-                    attention_probs_dropout_prob=0.0,
-                    initializer_range=0.02,
-                    do_return_2d_tensor=False,
-                    batch_size=None,
-                    from_seq_length=None,
-                    to_seq_length=None):
+                    attention_probs_dropout_prob=0.0,#0.1
+                    initializer_range=0.02,#0.02
+                    do_return_2d_tensor=False,#True
+                    batch_size=None,#2
+                    from_seq_length=None,#10
+                    to_seq_length=None):#10
   """Performs multi-headed attention from `from_tensor` to `to_tensor`.
   This is an implementation of multi-headed attention based on "Attention
   is all you Need". If `from_tensor` and `to_tensor` are the same, then
@@ -278,6 +278,7 @@ def transformer_model(input_tensor,
         "heads (%d)" % (hidden_size, num_attention_heads))
 
   attention_head_size = int(hidden_size / num_attention_heads)
+  #(2, 10, 384)
   input_shape = get_shape_list(input_tensor, expected_rank=3)
   batch_size = input_shape[0]
   seq_length = input_shape[1]
@@ -293,6 +294,7 @@ def transformer_model(input_tensor,
   # forth from a 3D tensor to a 2D tensor. Re-shapes are normally free on
   # the GPU/CPU but may not be free on the TPU, so we want to minimize them to
   # help the optimizer.
+  #(-1,384)=(20,384)=reshape_to_matrix((2,10,384))
   prev_output = reshape_to_matrix(input_tensor)
 
   all_layer_outputs = []
@@ -323,6 +325,7 @@ def transformer_model(input_tensor,
         else:
           # In the case where we have other sequences, we just concatenate
           # them to the self-attention head before the projection.
+          #???
           attention_output = tf.concat(attention_heads, axis=-1)
 
         # Run a linear projection of `hidden_size` then add a residual
