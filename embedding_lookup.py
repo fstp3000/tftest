@@ -10,6 +10,17 @@ import re
 import numpy as np
 import six
 import tensorflow as tf
+def reshape_from_matrix(output_tensor, orig_shape_list):
+  """Reshapes a rank 2 tensor back to its original rank >= 2 tensor."""
+  if len(orig_shape_list) == 2:
+    return output_tensor
+
+  output_shape = get_shape_list(output_tensor)
+
+  orig_dims = orig_shape_list[0:-1]
+  width = output_shape[-1]
+
+  return tf.reshape(output_tensor, orig_dims + [width])
 def reshape_to_matrix(input_tensor):
   """Reshapes a >= rank 2 tensor to a rank 2 tensor (i.e., a matrix)."""
   ndims = input_tensor.shape.ndims
@@ -434,7 +445,7 @@ shape(2, 10, 7)
  shape(2, 1, 7)
  """
   mask = broadcast_ones * to_mask
-  return mask, broadcast_ones, to_mask
+  return mask
 def assert_rank(tensor, expected_rank, name=None):
   """Raises an exception if the tensor rank is not of the expected rank.
   Args:
@@ -693,8 +704,8 @@ input_ids = tf.constant([[[31, 51, 99], [15, 5, 0],
                           [31, 51, 99], [15, 5, 0],
                           [31, 51, 99], [15, 5, 0],
                           [31, 51, 99], [15, 5, 0]]])
-input_mask = tf.constant([[1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 0, 1, 1, 1, 1]])
+input_mask = tf.constant([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 0, 1, 1, 1, 1, 1, 1, 1]])
 token_type_ids = tf.constant([[[0, 0, 1], [0, 2, 0],
                                [0, 0, 1], [0, 2, 0],
                                [0, 0, 1], [0, 2, 0],
@@ -736,7 +747,7 @@ with tf.Session() as sess:
     sess.run(init)
     r1 = sess.run(all_encoder_layers)
     print(r1)
-    print(r1.shape)
+    print(len(r1))
     #r2 = sess.run(a)
     #print(r2)
     #print(r2.shape)
