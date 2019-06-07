@@ -236,7 +236,7 @@ def attention_layer(from_tensor,
 
 def transformer_model(input_tensor,
                       attention_mask=None,
-                      hidden_size=768,
+                      hidden_size=384,#assert problem
                       num_hidden_layers=12,
                       num_attention_heads=12,
                       intermediate_size=3072,
@@ -247,10 +247,6 @@ def transformer_model(input_tensor,
                       do_return_all_layers=False):
   """Multi-headed, multi-layer Transformer from "Attention is All You Need".
   This is almost an exact implementation of the original Transformer encoder.
-  See the original paper:
-  https://arxiv.org/abs/1706.03762
-  Also see:
-  https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/models/transformer.py
   Args:
     input_tensor: float Tensor of shape [batch_size, seq_length, hidden_size].
     attention_mask: (optional) int32 Tensor of shape [batch_size, seq_length,
